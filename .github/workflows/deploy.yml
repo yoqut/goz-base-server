@@ -39,7 +39,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /var/www/event/event/goz-base-server
+            cd /var/www/event/goz-base-server
             docker load < image.tar.gz
 
             if docker ps --filter "name=django_web_blue" --format '{{.Names}}' | grep -q django_web_blue; then
@@ -52,7 +52,7 @@ jobs:
 
             echo "Deploying to $NEXT_ENV"
 
-            docker-compose -f goz-base-server/docker-compose.${NEXT_ENV}.yml up -d
+            docker-compose -f docker-compose.${NEXT_ENV}.yml up -d
 
             # Healthcheck
             PORT=$( [ $NEXT_ENV == "blue" ] && echo 8000 || echo 8001 )
@@ -64,7 +64,7 @@ jobs:
 
             if [ "$STATUS" -ne 200 ]; then
               echo "Healthcheck failed!"
-              docker-compose -f goz-base-server/docker-compose.${NEXT_ENV}.yml down
+              docker-compose -f docker-compose.${NEXT_ENV}.yml down
               exit 1
             fi
 
@@ -72,4 +72,4 @@ jobs:
             sudo sed -i "s/server 127.0.0.1:.*/server 127.0.0.1:$PORT;/" /etc/nginx/sites-available/event/default.conf
             sudo nginx -s reload
 
-            docker-compose -f goz-base-server/docker-compose.${CURRENT_ENV}.yml down
+            docker-compose -f docker-compose.${CURRENT_ENV}.yml down
