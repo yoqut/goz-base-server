@@ -32,6 +32,7 @@ jobs:
           source: "image.tar.gz"
           target: "/var/www/event/goz-base-server/"
 
+
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
         with:
