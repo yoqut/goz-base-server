@@ -16,7 +16,7 @@ jobs:
         username: ubuntu
         key: ${{ secrets.SSH_KEY }}
         script: |
-          cd /home/ubuntu/goz-base-server
+          cd /var/www/event/goz-base-server
           git pull origin main
           docker-compose down
           docker-compose build
