@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - redis
+      - redis_blue
 
   celery:
     image: event-backend:latest
@@ -16,9 +16,9 @@ services:
     command: celery -A config worker --loglevel=info
 
     depends_on:
-      - redis
+      - redis_blue
 
   redis:
     image: redis:7-alpine
-    container_name: redis
+    container_name: redis_blue
     restart: always

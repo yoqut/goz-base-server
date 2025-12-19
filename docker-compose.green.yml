@@ -1,26 +1,25 @@
+
 services:
   web:
     image: event-backend:latest
-    container_name: django_web_blue
+    container_name: django_web_green
     restart: always
-    env_file:
-      - .env
+
     ports:
-      - "8000:8000"
+      - "8001:8000"
     depends_on:
-      - redis
+      - redis_green
 
   celery:
     image: event-backend:latest
-    container_name: celery_blue
+    container_name: celery_green
     restart: always
     command: celery -A config worker --loglevel=info
-    env_file:
-      - .env
+
     depends_on:
-      - redis
+      - redis_green
 
   redis:
     image: redis:7-alpine
-    container_name: redis
+    container_name: redis_green
     restart: always
