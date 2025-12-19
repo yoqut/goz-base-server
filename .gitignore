@@ -1,0 +1,91 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =========================
+# Virtual environments
+# =========================
+env/
+.venv/
+venv/
+ENV/
+.env
+.env
+../.venv/
+.virtualenv/
+
+# =========================
+# Django
+# =========================
+*.log
+local_settings.py
+settings_local.py
+db.sqlite3
+db.sqlite3-journal
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Celery / Redis
+# =========================
+celerybeat-schedule
+celerybeat.pid
+
+# =========================
+# Cache
+# =========================
+.cache/
+*.cache
+*.tmp
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE / Editor
+# =========================
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# =========================
+# PyCharm
+# =========================
+*.iml
+
+# =========================
+# Tests / Coverage
+# =========================
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# =========================
+# Build / Distribution
+# =========================
+build/
+dist/
+*.egg-info/
+
+# =========================
+# Logs
+# =========================
+logs/
+
+# =========================
+# Docker
+# =========================
+docker-compose.override.yml
