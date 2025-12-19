@@ -3,8 +3,7 @@ services:
     image: event-backend:latest
     container_name: django_web_blue
     restart: always
-    env_file:
-      - .env
+
     ports:
       - "8000:8000"
     depends_on:
@@ -15,8 +14,7 @@ services:
     container_name: celery_blue
     restart: always
     command: celery -A config worker --loglevel=info
-    env_file:
-      - .env
+
     depends_on:
       - redis
 
