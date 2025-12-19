@@ -30,7 +30,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           source: "image.tar.gz"
-          target: "/var/www/event"
+          target: "/var/www/event/goz-base-server/"
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
@@ -39,7 +39,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /var/www/event
+            cd /var/www/event/event/goz-base-server
             docker load < image.tar.gz
 
             if docker ps --filter "name=django_web_blue" --format '{{.Names}}' | grep -q django_web_blue; then
