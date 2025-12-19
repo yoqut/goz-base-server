@@ -76,7 +76,7 @@ class Journey(models.Model):
     from_location = models.JSONField(default=default_location)
     to_location = models.JSONField(default=default_location)
     price = models.IntegerField(default=0)
-    start_time = models.DateTimeField(auto_now_add=True)
+    start_time = models.DateTimeField(null=True, blank=True)
     destination = models.TextField(default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
