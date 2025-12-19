@@ -2,27 +2,37 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PATH="/home/app/.local/bin:$PATH"
+
+# Tizim kutubxonalari
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    python3-dev \
+    curl \
+    netcat-traditional \
+    && rm -rf /var/lib/apt/lists/*
+
+# User yaratish
+RUN useradd -m -u 1000 app
+USER app
 
 WORKDIR /app
 
-# system deps
-RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+# Virtual environment
+RUN python -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
 
-# pip
-RUN pip install --upgrade pip
+# Requirements
+COPY --chown=app:app requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# requirements
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Project fayllari
+COPY --chown=app:app . .
 
-# project
-COPY . .
-
-# entrypoint
-COPY entrypoint.sh /entrypoint.sh
+# Entrypoint
+COPY --chown=app:app entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000

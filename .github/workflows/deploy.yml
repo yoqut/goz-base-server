@@ -32,6 +32,10 @@ jobs:
           source: "image.tar.gz"
           target: "/var/www/event/goz-base-server/"
 
+      - name: Cleanup old images
+        run: |
+          docker image prune -f || true
+          rm -f image.tar.gz || true
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
