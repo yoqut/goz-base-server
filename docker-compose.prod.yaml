@@ -4,7 +4,7 @@ services:
     container_name: django_web
     restart: always
     env_file:
-      - deploy/.env
+      - .env
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -16,7 +16,7 @@ services:
     restart: always
     command: celery -A config worker --loglevel=info
     env_file:
-      - deploy/.env
+      - .env
     depends_on:
       - redis
 
