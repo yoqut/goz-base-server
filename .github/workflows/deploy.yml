@@ -1,0 +1,48 @@
+name: CI/CD Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Repo checkout
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2️⃣ Build Docker image
+      - name: Build Docker image
+        run: |
+          docker build -t event-backend .
+
+      # 3️⃣ Save image tar
+      - name: Save Docker image
+        run: |
+          docker save event-backend | gzip > image.tar.gz
+
+      # 4️⃣ Copy image.tar.gz to server
+      - name: Copy Docker image to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_KEY }}
+          source: "image.tar.gz"
+          target: "/var/www/event"
+
+      # 5️⃣ Deploy on server
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /var/www/event
+            docker load < image.tar.gz
+            docker-compose -f docker-compose.prod.yml down
+            docker-compose -f docker-compose.prod.yml up -d
