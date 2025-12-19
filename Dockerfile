@@ -1,40 +1,40 @@
-FROM python:3.11-slim
+# Dockerfile
+FROM python:3.11-slim-bullseye
 
+# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV PATH="/home/app/.local/bin:$PATH"
+ENV PIP_NO_CACHE_DIR=1
 
-# Tizim kutubxonalari
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    python3-dev \
-    curl \
-    netcat-traditional \
-    && rm -rf /var/lib/apt/lists/*
-
-# User yaratish
-RUN useradd -m -u 1000 app
-USER app
-
+# Set work directory
 WORKDIR /app
 
-# Virtual environment
-RUN python -m venv /app/venv
-ENV PATH="/app/venv/bin:$PATH"
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    postgresql-client \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
-# Requirements
-COPY --chown=app:app requirements.txt .
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
-# Project fayllari
-COPY --chown=app:app . .
+# Copy project
+COPY . .
 
-# Entrypoint
-COPY --chown=app:app entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+# Create scripts directory
+RUN mkdir -p /scripts
+COPY scripts/ /scripts/
+RUN chmod +x /scripts/*.sh
 
-EXPOSE 8000
+# Create static directory
+RUN mkdir -p /app/staticfiles
+RUN mkdir -p /app/media
 
-ENTRYPOINT ["/entrypoint.sh"]
+# Collect static files (will be run during build for production)
+ARG DEBUG
+RUN if [ "$DEBUG" = "False" ]; then python manage.py collectstatic --noinput; fi
+
+# Run entrypoint
+ENTRYPOINT ["/scripts/entrypoint.sh"]

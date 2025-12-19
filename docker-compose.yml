@@ -1,47 +1,71 @@
+# docker-compose.yml
 version: '3.8'
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: config_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - config_network
+
   web:
-    image: event-backend:latest
-    container_name: django_web
-    restart: unless-stopped
+    build: .
+    container_name: config_web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     ports:
       - "8000:8000"
     environment:
-      - DB_URL=sqlite:///db.sqlite3
+      - DEBUG=True
       - REDIS_URL=redis://redis:6379/0
-      - PYTHONUNBUFFERED=1
     depends_on:
       - redis
-    command: >
-      sh -c "
-        echo '=== Starting Django ===' &&
-        python manage.py migrate --noinput &&
-        python manage.py collectstatic --noinput --clear &&
-        gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
-      "
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    networks:
+      - config_network
 
   celery:
-    image: event-backend:latest
-    container_name: celery_worker
-    restart: unless-stopped
+    build: .
+    container_name: config_celery
+    command: /scripts/celery.sh
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
     environment:
-      - DB_URL=sqlite:///db.sqlite3
+      - DEBUG=True
       - REDIS_URL=redis://redis:6379/0
-      - PYTHONUNBUFFERED=1
     depends_on:
       - redis
-    command: celery -A config worker --loglevel=info
+      - web
+    networks:
+      - config_network
 
-  redis:
-    image: redis:7-alpine
-    container_name: redis_db
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
+  celery-beat:
+    build: .
+    container_name: config_celery_beat
+    command: celery -A config beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    environment:
+      - DEBUG=True
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+      - web
+    networks:
+      - config_network
+
+networks:
+  config_network:
+    driver: bridge
+
+volumes:
+  static_volume:
+  media_volume:
