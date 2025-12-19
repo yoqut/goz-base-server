@@ -1,31 +1,30 @@
-# 1. Base image
 FROM python:3.11-slim
 
-# 2. Ishchi katalog
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 
-# 3. System dependencies
+# system deps
 RUN apt-get update && apt-get install -y \
-    build-essential \
     libpq-dev \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# 4. Pipni yangilash
+# pip
 RUN pip install --upgrade pip
 
-# 5. Requirements o'rnatish
+# requirements
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-# 6. Loyihani copy qilish
+# project
 COPY . .
+
+# entrypoint
+COPY deploy/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000
 
-# 7. Django migrations va Gunicorn birlashtirilgan CMD
-CMD sh -c "python manage.py makemigrations --noinput && \
-    python manage.py migrate --noinput && \
-    python manage.py createsuper && \
-    python manage.py collectstatic --noinput && \
-    gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4 & \
-    celery -A config worker --loglevel=info"
+ENTRYPOINT ["/entrypoint.sh"]

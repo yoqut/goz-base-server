@@ -1,2 +1,14 @@
-.idea
-.venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+deploy/.env
+.git
+.gitignore
+node_modules/
+media/
+static/
+venv/
+.idea/
+.vscode/

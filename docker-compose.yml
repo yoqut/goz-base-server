@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  web:
+    image: event-backend:latest
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - redis
+
+  celery:
+    image: event-backend:latest
+    restart: always
+    command: celery -A config worker --loglevel=info
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    ports:
+      - "6379:6379"
