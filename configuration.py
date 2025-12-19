@@ -32,7 +32,7 @@ class EventSettings(BaseSettings):
     PASSENGER_BOT_URL: str = "http://localhost:8888"
     DRIVER_BOT_URL: str = "http://localhost:8080"
 
-    MAIN_BOT: str = None
+    MAIN_BOT: str = ""
 
     @property
     def ALLOWED_HOSTS(self) -> List[str]:
