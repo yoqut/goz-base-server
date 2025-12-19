@@ -41,6 +41,7 @@ class EventSettings(BaseSettings):
             '127.0.0.1',
             "0.0.0.0",
             'localhost',
+            'goz-dev.uz',
             self.PROJECT_URL,
             self.DRIVER_BOT_URL,
             self.PASSENGER_BOT_URL,
