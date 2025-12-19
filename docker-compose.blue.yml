@@ -1,8 +1,7 @@
-version: "3.9"
-
 services:
   web:
     image: event-backend:latest
+    container_name: django_web_blue
     restart: always
     env_file:
       - .env
@@ -13,6 +12,7 @@ services:
 
   celery:
     image: event-backend:latest
+    container_name: celery_blue
     restart: always
     command: celery -A config worker --loglevel=info
     env_file:
@@ -22,6 +22,5 @@ services:
 
   redis:
     image: redis:7-alpine
+    container_name: redis
     restart: always
-    ports:
-      - "6379:6379"

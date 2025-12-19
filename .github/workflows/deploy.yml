@@ -1,5 +1,4 @@
-name: CI/CD Deploy to VPS
-
+name: CI/CD Deploy Blue-Green
 
 on:
   push:
@@ -11,21 +10,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Repo checkout
-      - name: Checkout code
+      # 1️⃣ Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
       # 2️⃣ Build Docker image
       - name: Build Docker image
         run: |
-          docker build -t event-backend .
+          docker build -t event-backend:latest .
 
-      # 3️⃣ Save image tar
+      # 3️⃣ Save Docker image
       - name: Save Docker image
         run: |
-          docker save event-backend | gzip > image.tar.gz
+          docker save event-backend:latest | gzip > image.tar.gz
 
-      # 4️⃣ Copy image.tar.gz to server
+      # 4️⃣ Copy image to server
       - name: Copy Docker image to server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -35,8 +34,8 @@ jobs:
           source: "image.tar.gz"
           target: "/var/www/event"
 
-      # 5️⃣ Deploy on server
-      - name: Deploy on server
+      # 5️⃣ Deploy on server (Blue-Green)
+      - name: Deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -45,5 +44,42 @@ jobs:
           script: |
             cd /var/www/event
             docker load < image.tar.gz
-            docker-compose -f docker-compose.prod.yml down
-            docker-compose -f docker-compose.prod.yml up -d
+
+            # Determine next env
+            if docker ps --filter "name=django_web_blue" --format '{{.Names}}' | grep -q django_web_blue; then
+              NEXT_ENV=green
+              CURRENT_ENV=blue
+            else
+              NEXT_ENV=blue
+              CURRENT_ENV=green
+            fi
+
+            echo "Deploying to $NEXT_ENV"
+
+            # Start new container
+            docker-compose -f docker-compose.${NEXT_ENV}.yml up -d
+
+            # Healthcheck
+            for i in {1..10}; do
+              PORT=$( [ $NEXT_ENV == "blue" ] && echo 8000 || echo 8001 )
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PORT)
+              if [ "$STATUS" -eq 200 ]; then
+                echo "Healthcheck passed"
+                break
+              fi
+              echo "Waiting for container... $i"
+              sleep 5
+            done
+
+            if [ "$STATUS" -ne 200 ]; then
+              echo "Healthcheck failed, rolling back..."
+              docker-compose -f docker-compose.${NEXT_ENV}.yml down
+              exit 1
+            fi
+
+            # Switch Nginx upstream
+            sed -i "s/server 127.0.0.1:.*/server 127.0.0.1:$( [ $NEXT_ENV == "blue" ] && echo 8000 || echo 8001 );/" /etc/nginx/sites-available/event
+            sudo nginx -s reload
+
+            # Stop old container
+            docker-compose -f docker-compose.${CURRENT_ENV}.yml down
