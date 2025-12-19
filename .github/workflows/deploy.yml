@@ -1,4 +1,4 @@
-name: CI/CD Deploy Blue-Green
+name: CI/CD Simple Deploy
 
 on:
   push:
@@ -12,30 +12,28 @@ jobs:
       SERVER_IP: ${{ secrets.SERVER_IP }}
       SSH_KEY: ${{ secrets.SSH_KEY }}
 
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t event-backend:latest .
+        run: |
+          docker build -t event-backend:latest .
+          # Test qilish
+          docker run --rm event-backend:latest python --version
+          docker run --rm event-backend:latest ls -la /app/
 
       - name: Save Docker image
         run: docker save event-backend:latest | gzip > image.tar.gz
 
-      - name: Copy Docker image to server
+      - name: Copy files to server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ubuntu
           key: ${{ secrets.SSH_KEY }}
-          source: "image.tar.gz"
+          source: "image.tar.gz,docker-compose.yml"
           target: "/var/www/event/goz-base-server/"
-
-      - name: Cleanup old images
-        run: |
-          docker image prune -f || true
-          rm -f image.tar.gz || true
 
       - name: Deploy on server
         uses: appleboy/ssh-action@v1.0.3
@@ -45,28 +43,66 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             cd /var/www/event/goz-base-server
+            
+            echo "=== Cleaning old containers ==="
+            docker-compose down || true
+            
+            echo "=== Loading new image ==="
             docker load < image.tar.gz
-
-            if docker ps --filter "name=django_web_blue" --format '{{.Names}}' | grep -q django_web_blue; then
-              NEXT_ENV=green
-              CURRENT_ENV=blue
-            else
-              NEXT_ENV=blue
-              CURRENT_ENV=green
-            fi
-
-            echo "Deploying to $NEXT_ENV"
-
-            docker-compose -f docker-compose.${NEXT_ENV}.yml up -d
-
-            if [ "$STATUS" -ne 200 ]; then
-              echo "Healthcheck failed!"
-              docker-compose -f docker-compose.${NEXT_ENV}.yml down
+            echo "✅ Image loaded"
+            
+            echo "=== Starting services ==="
+            docker-compose up -d
+            
+            echo "=== Waiting for startup (30 seconds) ==="
+            sleep 30
+            
+            echo "=== Checking containers ==="
+            docker ps
+            
+            echo "=== Checking Django logs ==="
+            docker logs django_web --tail 20
+            
+            echo "=== Health check ==="
+            # Bir necha marotaba urinib ko'rish
+            MAX_RETRIES=12
+            RETRY_COUNT=0
+            
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              echo "Health check attempt $((RETRY_COUNT + 1))..."
+              
+              # Bir nechta endpoint'larni tekshirish
+              if curl -f -s http://localhost:8000/health/ > /dev/null 2>&1; then
+                echo "✅ Health check passed!"
+                break
+              fi
+              
+              if curl -f -s http://localhost:8000/ > /dev/null 2>&1; then
+                echo "✅ Root endpoint accessible!"
+                break
+              fi
+              
+              if curl -f -s http://localhost:8000/admin/ > /dev/null 2>&1; then
+                echo "✅ Admin endpoint accessible (redirect is OK)!"
+                break
+              fi
+              
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              echo "⏳ Waiting 5 seconds... ($RETRY_COUNT/$MAX_RETRIES)"
+              sleep 5
+            done
+            
+            if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+              echo "❌ Health check failed after $MAX_RETRIES attempts"
+              echo "=== Debug information ==="
+              docker logs django_web --tail 100
+              docker-compose logs --tail 100
+              docker-compose down
               exit 1
             fi
-
-            # Switch Nginx upstream
-            sudo sed -i "s/server 127.0.0.1:.*/server 127.0.0.1:$PORT;/" /etc/nginx/sites-available/event/default.conf
-            sudo nginx -s reload
-
-            docker-compose -f docker-compose.${CURRENT_ENV}.yml down
+            
+            echo "✅ Deployment completed successfully!"
+            
+            # Cleanup
+            rm -f image.tar.gz
+            docker image prune -f

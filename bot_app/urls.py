@@ -7,6 +7,7 @@ from .views import calculate_views
 from .views.bot_client_views import BotClientViewSet
 from .views.city_views import CityViewSet
 from .views.driver_views import DriverViewSet, DriverTransactionViewSet
+from .views.health_views import HealthView
 from .views.order_views import OrderViewSet
 from .views.passenger_post_views import PassengerPostViewSet
 from .views.passenger_travel_views import PassengerTravelViewSet
@@ -24,12 +25,9 @@ router.register(r'cities', CityViewSet, basename='city')
 router.register(r'orders', OrderViewSet, basename='order')
 router.register(r'passengers', PassengerViewSet, basename='passenger')
 
-
-
-
-
 urlpatterns = [
     path('sms/', api.urls),
     path('calculate/', calculate_views.calculate),
+    path('health/', HealthView.as_view(), name='health'),
     path('', include(router.urls)),
 ]

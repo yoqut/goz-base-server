@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  web:
+    image: event-backend:latest
+    container_name: django_web
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_URL=sqlite:///db.sqlite3
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - redis
+    command: >
+      sh -c "
+        echo '=== Starting Django ===' &&
+        python manage.py migrate --noinput &&
+        python manage.py collectstatic --noinput --clear &&
+        gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  celery:
+    image: event-backend:latest
+    container_name: celery_worker
+    restart: unless-stopped
+    environment:
+      - DB_URL=sqlite:///db.sqlite3
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - redis
+    command: celery -A config worker --loglevel=info
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis_db
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
