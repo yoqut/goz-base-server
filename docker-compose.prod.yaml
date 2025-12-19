@@ -1,0 +1,27 @@
+services:
+  web:
+    image: event-backend:latest
+    container_name: django_web
+    restart: always
+    env_file:
+      - deploy/.env
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      - redis
+
+  celery:
+    image: event-backend:latest
+    container_name: django_celery
+    restart: always
+    command: celery -A config worker --loglevel=info
+    env_file:
+      - deploy/.env
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+
