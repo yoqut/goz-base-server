@@ -64,5 +64,3 @@ def en():
 
 
 env = en()
-
-# psql -h database-1.czic202o6e4s.eu-north-1.rds.amazonaws.com -U postgres -d postgres database connection
