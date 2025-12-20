@@ -20,6 +20,7 @@ class EventSettings(BaseSettings):
     # project
     PROJECT_URL: str = "http://localhost:8000"
 
+
     # eskiz
     ESKIZ_HOST: str = ""
     ESKIZ_EMAIL: str = ""
