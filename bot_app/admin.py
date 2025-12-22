@@ -5,10 +5,13 @@ from .models import (
     Driver, Car, DriverTransaction, City, Order, Passenger, DriverGallery, CityPrice
 )
 
+admin.site.site_header = "Taxi Bot Admin"
+admin.site.site_title = "Taxi Bot Administration"
+admin.site.index_title = "Boshqaruv paneliga xush kelibsiz"
 
 @admin.register(BotClient)
 class BotClientAdmin(admin.ModelAdmin):
-    list_display = ("id", "new_full_name", "username", "language", "is_banned", "created_at")
+    list_display = ("id", "new_full_name", "username", "language", "is_banned")
     list_filter = ("is_banned", "language", "created_at")
     search_fields = ("full_name", "username", "telegram_id")
     list_editable = ("is_banned",)
@@ -77,16 +80,34 @@ class DriverGalleryInline(admin.StackedInline):
 
 @admin.register(Driver)
 class DriverAdmin(admin.ModelAdmin):
-    list_display = ("id", "new_full_name", "from_location", "to_location", "amount", "created_at")
-    list_filter = ("created_at",)
-    search_fields = ("telegram_id", "from_location", "to_location")
-    list_editable = ("amount",)
+    list_display = ("new_full_name", "car_info", "phone", "status", "locations", "amount",)
+    list_filter = ("phone", "status")
+    search_fields = ("telegram_id", "phone")
+    list_editable = ("amount", "status")
     inlines = [DriverGalleryInline, CarInline, DriverTransactionInline]
     readonly_fields = ("created_at", "updated_at")
     ordering = ("-created_at",)
 
+    def locations(self, obj):
+        return f"{obj.from_location} -> {obj.to_location}"
+
+    locations.short_description = "Yo'nalish"
+
     def new_full_name(self, obj):
         return f"{obj.full_name}({obj.telegram_id})"
+
+    new_full_name.short_description = "Ism"
+
+    def car_info(self, obj):
+        try:
+            cars = Car.objects.filter(driver_id=obj.id).first()
+            return f"{cars.car_model}({cars.car_number})"
+        except Exception as e:
+            print(e)
+            return ""
+
+    car_info.short_description = "Avtomobil ma'lumotlari"
+
 
 # CityPrice uchun inline
 class CityPriceInline(admin.StackedInline):
@@ -158,7 +179,7 @@ class OrderAdmin(admin.ModelAdmin):
     # Qidiruv maydonlari
     search_fields = [
         'user',
-        'driver__full_name',
+        'driver__name',
         'driver__phone',
 
     ]
